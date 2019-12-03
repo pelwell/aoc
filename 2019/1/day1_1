@@ -1,0 +1,12 @@
+#!/usr/bin/perl
+use strict;
+use integer;
+
+my $sum = 0;
+
+while (my $line = <>)
+{
+	$sum += ($line/3) - 2;
+}
+
+print("Fuel: $sum\n");

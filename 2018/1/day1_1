@@ -1,0 +1,8 @@
+#!/usr/bin/perl
+my $sum = 0;
+while (my $line = <>)
+{
+	$sum += $line;
+}
+
+print("Frequency: $sum\n");

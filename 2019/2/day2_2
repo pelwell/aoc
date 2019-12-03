@@ -1,0 +1,69 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+
+my $sum = 0;
+
+$/ = undef; # slurp
+
+my $input = <>;
+$input =~ s/\s+//g;
+
+my @input = split(",", $input);
+
+for (my $noun = 0; $noun <= 99; $noun++)
+{
+	for (my $verb = 0; $verb <= 99; $verb++)
+	{
+		my @mem = @input;
+
+		run_test(\@mem, $noun, $verb);
+		# print("noun=$noun, verb=$verb -> $mem[0]\n");
+
+		if ($mem[0] == 19690720)
+		{
+			print("noun=$noun, $verb=$verb\n");
+			exit(0);
+		}
+	}
+}
+
+exit(0);
+
+sub run_test
+{
+	my ($mem, $noun, $verb) = @_;
+
+	$mem->[1] = $noun;
+	$mem->[2] = $verb;
+
+	my $pc = 0;
+
+	while (1)
+	{
+		my $opcode = $mem->[$pc];
+		if ($opcode == 1)
+		{
+			my ($a, $b, $c) = @{$mem}[$pc+1 .. $pc+3];
+			$mem->[$c] = $mem->[$a] + $mem->[$b];
+			$pc += 4;
+		}
+		elsif ($opcode == 2)
+		{
+			my ($a, $b, $c) = @{$mem}[$pc+1..$pc+3];
+			$mem->[$c] = $mem->[$a] * $mem->[$b];
+			$pc += 4;
+		}
+		elsif ($opcode == 99)
+		{
+			#print("Program terminated at $pc\n");
+			last;
+		}
+		else
+		{
+			print("Invalid opcode $opcode at position $pc\n");
+			last;
+		}
+	}
+}

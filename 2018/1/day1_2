@@ -1,0 +1,18 @@
+#!/usr/bin/perl
+
+my $sum = 0;
+
+my %seen;
+
+my @lines = (<>);
+
+while (1)
+{
+	my $line = shift @lines;
+	push @lines, $line;
+	$sum += $line;
+	last if ($seen{$sum});
+	$seen{$sum} = 1;
+}
+
+print("First duplicate frequency: $sum\n");

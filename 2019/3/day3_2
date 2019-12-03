@@ -1,0 +1,65 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+
+my $sum = 0;
+
+my @path1 = split(",", <>);
+my @path2 = split(",", <>);
+
+my %visited;
+
+walk_path(\@path1, \%visited);
+walk_path(\@path2, \%visited);
+
+exit(0);
+
+sub walk_path
+{
+	my ($path, $visited) = @_;
+	my $first_pass = (keys(%$visited) == 0);
+	my $min = 9999999;
+
+	my ($x, $y) = (0, 0);
+	my $total_len = 0;
+
+	foreach my $step (@$path)
+	{
+		my ($dir, $len) = $step =~ /^([UDLR])(\d+)$/;
+
+		while ($len)
+		{
+			if ($dir eq 'U')
+			{
+				$y++;
+			}
+			elsif ($dir eq 'D')
+			{
+				$y--;
+			}
+			elsif ($dir eq 'L')
+			{
+				$x--;
+			}
+			elsif ($dir eq 'R')
+			{
+				$x++;
+			}
+			my $pos = join(',', $x, $y);
+			$total_len++;
+			if ($first_pass)
+			{
+				$visited->{$pos} ||= $total_len;
+			}
+			elsif ($visited->{$pos})
+			{
+				my $metric = $total_len + $visited->{$pos};
+				$min = $metric if ($metric < $min);
+			}
+			$len--;
+		}
+	}
+
+	print("Min: $min\n") if (!$first_pass);
+}

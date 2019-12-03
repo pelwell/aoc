@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+use strict;
+use integer;
+
+my $sum = 0;
+
+while (my $line = <>)
+{
+	while (1)
+	{
+		$line = ($line/3) - 2;
+		last if ($line <= 0);
+		$sum += $line;
+	}
+}
+
+print("Fuel: $sum\n");

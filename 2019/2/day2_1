@@ -1,0 +1,48 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+
+my $sum = 0;
+
+$/ = undef; # slurp
+
+my $file = <>;
+$file =~ s/\s+//g;
+
+my @mem = split(",", $file);
+
+$mem[1] = 12;
+$mem[2] = 2;
+
+my $pc = 0;
+
+while (1)
+{
+	my $opcode = $mem[$pc];
+	if ($opcode == 1)
+	{
+		my ($a, $b, $c) = @mem[$pc+1..$pc+3];
+		$mem[$c] = $mem[$a] + $mem[$b];
+		$pc += 4;
+	}
+	elsif ($opcode == 2)
+	{
+		my ($a, $b, $c) = @mem[$pc+1..$pc+3];
+		$mem[$c] = $mem[$a] * $mem[$b];
+		$pc += 4;
+	}
+	elsif ($opcode == 99)
+	{
+		print("Program terminated at $pc\n");
+		last;
+	}
+	else
+	{
+		print("Invalid opcode $opcode at position $pc\n");
+		last;
+	}
+}
+
+print("Final state:\n");
+print(join(',', @mem), "\n");
