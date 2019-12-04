@@ -7,42 +7,50 @@ my $sum = 0;
 
 $/ = undef; # slurp
 
-my $file = <>;
-$file =~ s/\s+//g;
+my $input = <>;
+$input =~ s/\s+//g;
 
-my @mem = split(",", $file);
+my @input = split(",", $input);
 
-$mem[1] = 12;
-$mem[2] = 2;
+run_test(\@input, 12, 2);
 
-my $pc = 0;
+print("Location 0: $input[0]\n");
 
-while (1)
+exit(0);
+
+sub run_test
 {
-	my $opcode = $mem[$pc];
-	if ($opcode == 1)
+	my ($mem, $noun, $verb) = @_;
+
+	$mem->[1] = $noun;
+	$mem->[2] = $verb;
+
+	my $pc = 0;
+
+	while (1)
 	{
-		my ($a, $b, $c) = @mem[$pc+1..$pc+3];
-		$mem[$c] = $mem[$a] + $mem[$b];
-		$pc += 4;
-	}
-	elsif ($opcode == 2)
-	{
-		my ($a, $b, $c) = @mem[$pc+1..$pc+3];
-		$mem[$c] = $mem[$a] * $mem[$b];
-		$pc += 4;
-	}
-	elsif ($opcode == 99)
-	{
-		print("Program terminated at $pc\n");
-		last;
-	}
-	else
-	{
-		print("Invalid opcode $opcode at position $pc\n");
-		last;
+		my $opcode = $mem->[$pc];
+		if ($opcode == 1)
+		{
+			my ($a, $b, $c) = @{$mem}[$pc+1 .. $pc+3];
+			$mem->[$c] = $mem->[$a] + $mem->[$b];
+			$pc += 4;
+		}
+		elsif ($opcode == 2)
+		{
+			my ($a, $b, $c) = @{$mem}[$pc+1..$pc+3];
+			$mem->[$c] = $mem->[$a] * $mem->[$b];
+			$pc += 4;
+		}
+		elsif ($opcode == 99)
+		{
+			#print("Program terminated at $pc\n");
+			last;
+		}
+		else
+		{
+			print("Invalid opcode $opcode at position $pc\n");
+			last;
+		}
 	}
 }
-
-print("Final state:\n");
-print(join(',', @mem), "\n");

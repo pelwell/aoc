@@ -19,11 +19,10 @@ for (my $noun = 0; $noun <= 99; $noun++)
 		my @mem = @input;
 
 		run_test(\@mem, $noun, $verb);
-		# print("noun=$noun, verb=$verb -> $mem[0]\n");
 
 		if ($mem[0] == 19690720)
 		{
-			print("noun=$noun, $verb=$verb\n");
+			print("Noun: $noun, Verb: $verb\n");
 			exit(0);
 		}
 	}

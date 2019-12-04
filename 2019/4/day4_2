@@ -1,0 +1,31 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+
+my ($from, $to) = split('-', <>);
+
+printf("Count: %d\n", run_test($from, $to));
+
+exit(0);
+
+sub run_test
+{
+	my ($from, $to) = @_;
+
+	my $count = 0;
+
+	for (my $i = $from; $i <= $to; $i++)
+	{
+		my $found_2 = 0;
+		while ($i =~ /((.)\2+)/g)
+		{
+			$found_2 = 1 if (length($1) == 2);	
+		}
+		next if (!$found_2);
+		next if ($i =~ /(10|2[01]|3[0-2]|4[0-3]|5[0-4]|6[0-5]|7[0-6]|8[0-7]|9[0-8])/);
+		$count++;
+	}
+
+	return $count;
+}

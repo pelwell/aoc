@@ -1,0 +1,10 @@
+#!/bin/sh
+
+day=$1
+
+echo Day $day: 
+
+echo -n "  "
+perl $day/day${day}_1 $day/input
+echo -n "  "
+perl $day/day${day}_2 $day/input
