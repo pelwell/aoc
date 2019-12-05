@@ -1,10 +1,23 @@
-#!/bin/sh
+#!/usr/bin/perl
 
-day=$1
+my $day = shift @ARGV;
 
-echo Day $day: 
+my $params1 = shift @ARGV;
+my $params2 = shift @ARGV;
 
-echo -n "  "
-perl $day/day${day}_1 $day/input
-echo -n "  "
-perl $day/day${day}_2 $day/input
+print("Day $day:\n"); 
+
+print("  ");
+system("perl $day/day${day}_1 " . params($params1). " $day/input");
+print("  ");
+system("perl $day/day${day}_2 " . params($params2) . " $day/input");
+
+exit(0);
+
+sub params
+{
+	my ($p) = @_;
+
+	return "" if (!defined $p);
+	return "-i $p";
+}
