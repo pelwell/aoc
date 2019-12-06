@@ -1,0 +1,44 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+
+my %nodes;
+
+my $total_ancestors = 0;
+
+while (my $line = <>)
+{
+	if ($line =~ /(\w+)\)(\w+)/)
+	{
+		$total_ancestors += add_child(get_node($1), get_node($2));
+	}
+}
+
+printf("Orbits: %d\n", $total_ancestors);
+
+exit(0);
+
+sub get_node
+{
+	return ($nodes{$_[0]} ||= [0]);
+}
+
+sub add_child
+{
+	my ($a, $c) = @_;
+	push @$a, $c;
+	return add_ancestors($c, $a->[0] + 1);
+}
+
+sub add_ancestors
+{
+	my ($c, $n) = @_;
+	my $total = $n;
+	$c->[0] += $n;
+	for (my $i = 1; $i < @$c; $i++)
+	{
+		$total += add_ancestors($c->[$i], $n);
+	}
+	return $total;
+}

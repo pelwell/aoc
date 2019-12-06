@@ -1,0 +1,43 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+
+my %nodes;
+
+while (my $line = <>)
+{
+	if ($line =~ /(\w+)\)(\w+)/)
+	{
+		# Make the children point to the parent
+		${get_node($2)} = get_node($1);
+	}
+}
+
+root_walk(${get_node('SAN')});
+
+printf("Orbital transfers: %d\n", root_walk(${get_node('YOU')}));
+
+exit(0);
+
+sub get_node
+{
+	my ($name) = @_;
+	my $temp;
+	# create a reference to an anonymous location
+	return $nodes{$name} ||= \$temp;
+}
+
+sub root_walk
+{
+	my $node = $_[0];
+	my $transfers = 0;
+	while (ref $$node)
+	{
+		my $next = $$node;
+		$$node = $transfers++;
+		$node = $next;
+	}
+
+	return $$node + $transfers if (defined $node);
+}
