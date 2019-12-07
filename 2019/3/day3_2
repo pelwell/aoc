@@ -61,5 +61,5 @@ sub walk_path
 		}
 	}
 
-	print("Min: $min\n") if (!$first_pass);
+	print("Answer: $min\n") if (!$first_pass);
 }

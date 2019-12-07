@@ -5,7 +5,7 @@ use integer;
 
 my ($from, $to) = split('-', <>);
 
-printf("Count: %d\n", run_test($from, $to));
+printf("Answer: %d\n", run_test($from, $to));
 
 exit(0);
 

@@ -15,7 +15,7 @@ while (my $line = <>)
 	}
 }
 
-printf("Orbits: %d\n", $total_ancestors);
+printf("Answer: %d\n", $total_ancestors);
 
 exit(0);
 

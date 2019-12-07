@@ -37,7 +37,16 @@ my @mem = @program;
 run_test(\@mem);
 print("Final state: ", join(',', @mem), "\n") if ($trace);
 
-print("Output: ", join(',', @g_output), "\n");
+my $val;
+
+do
+{
+	$val = shift @g_output;
+} while (!$val);
+
+die "* malformed output data\n" if (@g_output != 0);
+
+printf("Answer: %d\n", $val);
 
 exit(0);
 

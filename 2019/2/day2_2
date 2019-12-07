@@ -22,7 +22,7 @@ for (my $noun = 0; $noun <= 99; $noun++)
 
 		if ($mem[0] == 19690720)
 		{
-			print("Noun: $noun, Verb: $verb\n");
+			print("Answer: $noun$verb\n");
 			exit(0);
 		}
 	}

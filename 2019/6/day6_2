@@ -16,7 +16,7 @@ while (my $line = <>)
 
 root_walk(${get_node('SAN')});
 
-printf("Orbital transfers: %d\n", root_walk(${get_node('YOU')}));
+printf("Answer: %d\n", root_walk(${get_node('YOU')}));
 
 exit(0);
 

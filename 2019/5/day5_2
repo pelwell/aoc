@@ -37,7 +37,7 @@ my @mem = @program;
 run_test(\@mem);
 print("Final state: ", join(',', @mem), "\n") if ($trace);
 
-print("Output: ", join(',', @g_output), "\n");
+print("Answer: ", join(',', @g_output), "\n");
 
 exit(0);
 

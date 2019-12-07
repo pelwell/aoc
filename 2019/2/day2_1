@@ -14,7 +14,7 @@ my @input = split(",", $input);
 
 run_test(\@input, 12, 2);
 
-print("Location 0: $input[0]\n");
+print("Answer: $input[0]\n");
 
 exit(0);
 

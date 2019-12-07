@@ -9,4 +9,4 @@ while (my $line = <>)
 	$sum += ($line/3) - 2;
 }
 
-print("Fuel: $sum\n");
+print("Answer: $sum\n");
