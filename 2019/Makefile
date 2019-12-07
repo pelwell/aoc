@@ -1,4 +1,4 @@
-all: day1 day2 day3 day4 day5 day6
+all: day1 day2 day3 day4 day5 day6 day7
 
 .SILENT:
 
@@ -19,3 +19,6 @@ day5:
 
 day6:
 	../runday 6
+
+day7:
+	../runday 7
