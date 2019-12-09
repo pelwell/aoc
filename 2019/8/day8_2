@@ -1,0 +1,41 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+
+my $width = 25;
+my $height = 6;
+my $input = <>;
+
+my $image = read_image($width, $height, $input);
+
+my $min_zeroes = 9999;
+my $answer;
+
+my $img = '2' x ($width * $height);
+foreach my $layer (@{$image->{'layers'}})
+{
+	$img =~ s/2/substr($layer, pos($img), 1)/eg;
+}
+$img =~ tr/01/ #/;
+$img =~ s/(.{$width})/$1\n/g;
+print($img, "\n");
+
+exit(0);
+
+sub read_image
+{
+	my ($width, $height, $input) = @_;
+	my $layers = [];
+	my $image = { 'width'=>$width, 'height'=>$height, 'layers'=>$layers };
+	my $size = $width * $height;
+	my $offset = 0;
+
+	while (($offset + $size) <= length($input))
+	{
+		push @$layers, substr($input, $offset, $size);
+		$offset += $size;
+	}
+
+	return $image;
+}
