@@ -1,0 +1,148 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+
+my @map;
+
+while (my $line = <>)
+{
+    chomp($line);
+    push @map, $line;
+}
+
+my $height = @map;
+my $width = length($map[0]);
+
+my $max_asteroids = 0;
+my $answer;
+
+for (my $y = 0; $y < $height; $y++)
+{
+	for (my $x = 0; $x < $width; $x++)
+	{
+		next if (substr($map[$y], $x, 1) ne '#');
+		my $asteroids = count_asteroids(\@map, $x, $y);
+		if ($asteroids > $max_asteroids)
+		{
+			$max_asteroids = $asteroids;
+			$answer = "$x,$y";
+		}
+	}
+}
+
+printf("Answer: $answer\n");
+
+exit(0);
+
+sub count_asteroids
+{
+	my ($map, $base_x, $base_y) = @_;
+
+	my @map = @$map;
+
+	my $min_x = $base_x/2;
+	my $min_y = $base_y/2;
+	my $max_x = ($width + $base_x - 1)/2;
+	my $max_y = ($height + $base_y - 1)/2;
+
+	substr($map[$base_y], $base_x, 1, 'H');
+	printf("count %d,%d\n", $base_x, $base_y);
+	for (my $radius = 1; 1; $radius++)
+	{
+		my $cont = 0;
+
+		for (my $d = -$radius; $d < $radius; $d++)
+		{
+			occlude(\@map, $base_x, $base_y, $d, -$radius), $cont=1
+				if ($base_x + $d >= $min_x &&
+		 		    $base_x + $d <= $max_x &&
+				    $base_y - $radius >= $min_y);
+			occlude(\@map, $base_x, $base_y, $d, $radius), $cont=1
+				if ($base_x + $d >= $min_x &&
+		 		    $base_x + $d <= $max_x &&
+				    $base_y + $radius <= $max_y);
+			occlude(\@map, $base_x, $base_y, -$radius, $d), $cont=1
+				if ($base_x + $d >= $min_x &&
+		 		    $base_x + $d <= $max_x &&
+				    $base_y - $radius >= $min_y);
+			occlude(\@map, $base_x, $base_y, $radius, $d), $cont=1
+				if ($base_x + $d >= $min_x &&
+		 		    $base_x + $d <= $max_x &&
+				    $base_y + $radius <= $max_y);
+		}
+		last if (!$cont);
+	}
+
+	my $asteroids = 0;
+	
+	foreach my $row (@map)
+	{
+		$asteroids += ($row =~ tr/#/@/);
+	}
+	printf("  %d,%d -> %d\n", $base_x, $base_y, $asteroids);
+	return $asteroids;
+}
+
+sub occlude
+{
+	my ($map, $base_x, $base_y, $dx, $dy) = @_;
+
+	my $x = $base_x + $dx;
+	my $y = $base_y + $dy;
+
+	printf("  occ %d,%d\n", $x, $y);
+	return if (substr($map->[$y], $x, 1) ne '#');
+
+	my $g = gcd(($dx < 0) ? -$dx : $dx,
+		    ($dy < 0) ? -$dy : $dy);
+	$dx /= $g;
+	$dy /= $g;
+
+	while (1)
+	{
+		$x += $dx;
+		$y += $dy;
+
+		return if ($x < 0 || $x >= $width ||
+			   $y < 0 || $y >= $height);
+
+		if (substr($map->[$y], $x, 1) eq '#')
+		{
+		    substr($map->[$y], $x, 1, 'X');
+		    printf("    hide %d,%d\n", $x, $y);
+		    show_map($map);
+		}
+	}
+}
+
+sub show_map
+{
+    my ($map) = @_;
+    foreach my $row (@$map)
+    {
+	print("    $row\n");
+    }
+}
+
+sub gcd
+{
+    my ($a, $b) = @_;
+    while (1)
+    {
+        if ($b > $a)
+        {
+	   return $b if (!$a);
+	   $b -= $a;
+        }
+	elsif ($a > $b)
+	{
+	   return $a if (!$b);
+	   $a -= $b;
+	}
+	else
+	{
+	    return $a;
+	}
+    }
+}
