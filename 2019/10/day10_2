@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
 use strict;
-use integer;
+
+my $PI = 3.14159275358979;
 
 my $trace = 0;
 my @map;
@@ -34,6 +35,23 @@ for (my $y = 0; $y < $height; $y++)
 }
 
 printf("Answer: %d (at %d, %d)\n", $max_asteroids, $base_x, $base_y);
+
+my @asteroids = find_asteroids(\@map, $base_x, $base_y);
+
+my %by_angle;
+
+foreach my $asteroid (@asteroids)
+{
+	my $angle = atan2($asteroid->[1], $asteroid->[0]);
+	$angle += $PI*2 if ($angle < -$PI/2);
+	$by_angle{$angle} = $asteroid;
+}
+
+my @sorted = sort { $a <=> $b } keys(%by_angle);
+my $no200 = $by_angle{$sorted[199]};
+my $x = $base_x + $no200->[0];
+my $y = $base_y + $no200->[1];
+printf("Answer: %d\n", $x*100 + $y);
 
 exit(0);
 
