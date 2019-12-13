@@ -2,6 +2,7 @@
 
 use strict;
 use integer;
+use Time::HiRes qw(usleep);
 
 my $trace = 0;
 
@@ -32,44 +33,83 @@ $program =~ s/\s+//g;
 
 my @program = split(",", $program);
 
-my $min_x = 0;
-my $min_y = 0;
-my $max_x = 0;
-my $max_y = 0;
-my @tiles = (" ", "W", "#", "_", "O");
+my @tiles = (" ", "#", "=", "-", "O");
+
+$program[0] = 2;
 
 my $cpu = make_cpu("cpu", \@program, \@input, \@output);
 
-run_cpu($cpu);
+my @screen;
+my $initialised;
+my $width;
+my $height;
+my $score = 0;
 
-for (my $i = 0; $i < @output; $i += 3)
+my ($ball_x, $ball_y, $paddle_x, $paddle_y);
+while (1)
 {
-	my ($x, $y) = ($output[$i], $output[$i+1]);
-	$max_x = $x if ($x > $max_x);
-	$max_y = $y if ($y > $max_y);
+	my $halted = run_cpu($cpu);
+
+	if (!$initialised)
+	{
+		my $min_x = 0;
+		my $min_y = 0;
+		my $max_x = 0;
+		my $max_y = 0;
+		for (my $i = 0; $i < @output; $i += 3)
+		{
+			my ($x, $y) = ($output[$i], $output[$i+1]);
+			$max_x = $x if ($x > $max_x);
+			$max_y = $y if ($y > $max_y);
+		}
+
+		$width = $max_x + 1;
+		$height = $max_y + 1;
+		for (my $y = 0; $y < $height; $y++)
+		{
+			push @screen, " " x ($width);
+		}
+
+		printf("\x1b[2J");
+		$initialised = 1;
+	}
+
+	while (@output)
+	{
+		my ($x, $y, $tile) = splice(@output, 0, 3);
+		if ($x >= 0 && $y >= 0)
+		{
+			substr($screen[$y], $x, 1, $tiles[$tile]);
+			if ($tile == 4)
+			{
+				$ball_x = $x;
+				$ball_y = $y;
+			}
+			elsif ($tile == 3)
+			{
+				$paddle_x = $x;
+				$paddle_y = $y;
+			}
+		}
+		elsif ($x == -1 && $y == 0)
+		{
+			$score = $tile;
+		}
+	}
+
+	printf("\x1b[H");
+	printf("Score: %d\n", $score);
+	foreach my $row (@screen)
+	{
+		printf("%s\n", $row);
+	}
+
+	last if ($halted);
+	push @input, ($ball_x < $paddle_x) ? -1 : (($ball_x > $paddle_x) ? 1 : 0);
+	#usleep(10000);
 }
 
-my @image;
-
-for (my $y = 0; $y <= $max_y; $y++)
-{
-	push @image, " " x ($max_x + 1);
-}
-
-for (my $i = 0; $i < @output; $i += 3)
-{
-	my ($x, $y, $tile) = ($output[$i], $output[$i+1], $output[$i + 2]);
-	substr($image[$y], $x, 1, $tiles[$tile]);
-}
-
-my $blocks = 0;
-foreach my $row (@image)
-{
-	printf("%s\n", $row);
-	$blocks += ($row =~ tr/#/#/);
-}
-
-printf("Blocks: %d\n", $blocks);
+printf("Score: %d\n", $score);
 
 exit(0);
 
@@ -116,7 +156,7 @@ sub run_cpu
 				printf("%s stalling for input\n", $cpu->{'name'}) if ($trace);
 				return 0;
 			}
-			
+
 			store($cpu, 1, $inp);
 			$cpu->{'pc'} += 2;
 		}
