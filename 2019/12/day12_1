@@ -1,0 +1,73 @@
+#!/us/bin/perl
+
+my @moons;
+
+while (my $line = <>)
+{
+	if ($line =~ /^<x=([^,]+),\s*y=([^,]+),\s*z=([^,]+)>/)
+	{
+		push @moons, [ $1, $2, $3, 0, 0, 0 ];
+	}
+}
+
+my $steps = 10000;
+
+for (my $step = 1; $step <= $steps; $step++)
+{
+	# Update velocity using gravity
+
+	for (my $i = 0; $i < (@moons - 1); $i++)
+	{
+		my $moon1 = $moons[$i];
+		for (my $j = $i + 1; $j < @moons; $j++)
+		{
+			my $moon2 = $moons[$j];
+			for (my $d = 0; $d < 3; $d++)
+			{
+				if ($moon1->[$d] < $moon2->[$d])
+				{
+					$moon1->[3 + $d]++;
+					$moon2->[3 + $d]--;
+				}
+				elsif ($moon1->[$d] > $moon2->[$d])
+				{
+					$moon1->[3 + $d]--;
+					$moon2->[3 + $d]++;
+				}
+			}
+		}
+	}
+
+	# Update position using velocity
+	for (my $i = 0; $i < @moons; $i++)
+	{
+		my $moon = $moons[$i];
+		for (my $d = 0; $d < 3; $d++)
+		{
+			$moon->[$d] += $moon->[3 + $d];
+		}
+	}
+
+	printf("After %d steps:\n", $step);
+	for (my $i = 0; $i < @moons; $i++)
+	{
+		printf("pos=<x=%d, y=%d, z=%d>, vel=<x=%d, y=%d, z=%d>\n",
+			@{$moons[$i]});
+	}
+	print("\n");
+}
+
+# Calculate the energy in the system
+my $total_energy = 0;
+
+for (my $i = 0; $i < @moons; $i++)
+{
+	my $moon = $moons[$i];
+	my $pot = abs($moon->[0]) + abs($moon->[1]) + abs($moon->[2]);
+	my $kin = abs($moon->[3]) + abs($moon->[4]) + abs($moon->[5]);
+	$total_energy += $pot * $kin;
+	printf("pos=<x=%d, y=%d, z=%d>, vel=<x=%d, y=%d, z=%d>\n",
+		@{$moons[$i]});
+}
+
+printf("Total energy: %d\n", $total_energy);
