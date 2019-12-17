@@ -1,0 +1,92 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+
+my $start = 'FUEL';
+my $end = 'ORE';
+
+my %rules;
+while (my $line = <>)
+{
+	my $rule = [];
+	my @pairs = split(/(?:, | => )/, $line);
+	foreach my $pair (@pairs)
+	{
+		$pair =~ /(\d+) ([A-Z]+)/;
+		unshift @$rule, [$2, $1];
+	}
+
+	$rules{$rule->[0]->[0]} = $rule;
+	$rule->[0] = $rule->[0]->[1];
+}
+
+my $target = 1000000000000;
+
+my $upper = $target/ore_required(1);
+my $lower = $upper/2;
+
+while (ore_required($upper) < $target)
+{
+	$lower = $upper;
+	$upper *= 2;
+}
+
+while (($lower + 1) < $upper)
+{
+	my $guess = ($lower + $upper)/2;
+	if (ore_required($guess) < $target)
+	{
+		$lower = $guess;
+	}
+	else
+	{
+		$upper = $guess;
+	}
+}
+
+printf("ore_required(%d) = %d\n", $lower, ore_required($lower));
+
+sub ore_required
+{
+	my ($fuel) = @_;
+	my %reqd = ( $start => $fuel );
+
+	while (1)
+	{
+		my @active = keys(%reqd);
+
+		foreach my $elem (@active)
+		{
+			next if ($elem eq $end);
+			my $num = $reqd{$elem};
+			next if ($num < 0);
+			my $rule = $rules{$elem};
+			my $makes = $rule->[0];
+			my $mult = ($num + $makes - 1)/$makes;
+			my $spare = $makes * $mult - $num;
+			if ($spare)
+			{
+				$reqd{$elem} = -$spare;
+			}
+			else
+			{
+				delete $reqd{$elem};
+			}
+			for (my $i = 1; $i < @$rule; $i++)
+			{
+				my $ingredient = $rule->[$i];
+				$reqd{$ingredient->[0]} += $ingredient->[1] * $mult;
+			}
+		}
+
+		my $still_required = 0;
+		while (my ($e, $n) = each(%reqd))
+		{
+			$still_required = 1 if ($e ne $end && $n > 0);
+		}
+		last if (!$still_required);
+	}
+	return $reqd{$end};
+}
+

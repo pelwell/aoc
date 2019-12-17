@@ -1,0 +1,62 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+
+my $start = 'FUEL';
+my $end = 'ORE';
+
+my %rules;
+while (my $line = <>)
+{
+	my $rule = [];
+	my @pairs = split(/(?:, | => )/, $line);
+	foreach my $pair (@pairs)
+	{
+		$pair =~ /(\d+) ([A-Z]+)/;
+		unshift @$rule, [$2, $1];
+	}
+
+	$rules{$rule->[0]->[0]} = $rule;
+	$rule->[0] = $rule->[0]->[1];
+}
+
+my %reqd = ( $start => 1 );
+
+while (1)
+{
+	my @active = keys(%reqd);
+
+	foreach my $elem (@active)
+	{
+		next if ($elem eq $end);
+		my $num = $reqd{$elem};
+		next if ($num < 0);
+		my $rule = $rules{$elem};
+		my $makes = $rule->[0];
+		my $mult = ($num + $makes - 1)/$makes;
+		my $spare = $makes * $mult - $num;
+		if ($spare)
+		{
+			$reqd{$elem} = -$spare;
+		}
+		else
+		{
+			delete $reqd{$elem};
+		}
+		for (my $i = 1; $i < @$rule; $i++)
+		{
+			my $ingredient = $rule->[$i];
+			$reqd{$ingredient->[0]} += $ingredient->[1] * $mult;
+		}
+	}
+
+	my $still_required = 0;
+	while (my ($e, $n) = each(%reqd))
+	{
+		$still_required = 1 if ($e ne $end && $n > 0);
+	}
+	last if (!$still_required);
+}
+
+printf("%d %ss\n", $reqd{$end}, $end);
