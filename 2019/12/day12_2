@@ -1,35 +1,34 @@
 #!/us/bin/perl
 
-my @moons;
-my %history;
+my @start;
 
 while (my $line = <>)
 {
 	if ($line =~ /^<x=([^,]+),\s*y=([^,]+),\s*z=([^,]+)>/)
 	{
-		push @moons, [ $1, $2, $3, 0, 0, 0 ];
+		push @start, [ $1, $2, $3, 0, 0, 0 ];
 	}
 }
 
-my $steps = 100000;
-
-for (my $step = 1; $step <= $steps; $step++)
+my @moons = @start;
+for (my $d = 0; $d < 3; $d++)
 {
-	# Update velocity using gravity
-
-	for (my $i = 0; $i < (@moons - 1); $i++)
+	my $steps = 0;
+	while (1)
 	{
-		my $moon1 = $moons[$i];
-		for (my $j = $i + 1; $j < @moons; $j++)
+		$steps++;
+		# Update velocity using gravity
+		for (my $i = 0; $i < (@moons - 1); $i++)
 		{
-			my $moon2 = $moons[$j];
-			for (my $d = 0; $d < 3; $d++)
+			my $moon1 = $moons[$i];
+			for (my $j = $i + 1; $j < @moons; $j++)
 			{
+				my $moon2 = $moons[$j];
 				if ($moon1->[$d] < $moon2->[$d])
 				{
 					$moon1->[3 + $d]++;
 					$moon2->[3 + $d]--;
- 				}
+				}
 				elsif ($moon1->[$d] > $moon2->[$d])
 				{
 					$moon1->[3 + $d]--;
@@ -37,30 +36,20 @@ for (my $step = 1; $step <= $steps; $step++)
 				}
 			}
 		}
-	}
 
-	# Update position using velocity
-	for (my $i = 0; $i < @moons; $i++)
-	{
-		my $moon = $moons[$i];
-		for (my $d = 0; $d < 3; $d++)
-		{
-			$moon->[$d] += $moon->[3 + $d];
-		}
-	}
-
-	if ($step % 100 == 999)
-	{
-		my $total_kin = 0;
-		my $total_pot = 0;
-
+		# Update position using velocity
+		# Check for loop
+		my $same = 0;
 		for (my $i = 0; $i < @moons; $i++)
 		{
-		        my $moon = $moons[$i];
-		        $total_pot += abs($moon->[0]) + abs($moon->[1]) + abs($moon->[2]);
-		        $total_kin = abs($moon->[3]) + abs($moon->[4]) + abs($moon->[5]);
+			my $moon = $moons[$i];
+			$moon->[$d] += $moon->[3 + $d];
+			if (!$moon->[3 + $d] && ($moon->[$d] == $start[$i]->[$d]))
+			{
+				$same++;
+			}
 		}
-		print("%d: %d, %d\n", $step + 1, $total_pot, $total_kin);
-
+		last if ($same == @moons);
 	}
+	printf("%d: loops after %d\n", $d, $steps);
 }
