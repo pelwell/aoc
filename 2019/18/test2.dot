@@ -1,0 +1,13 @@
+graph {
+    start -- a[label="2"];
+    start -- A[label="2"];
+    a -- B[label="2"];
+    A -- b[label="2"];
+    B -- c[label="2"];
+    b -- C[label="2"];
+    c -- d[label="24"];
+    C -- e[label="2"];
+    e -- E[label="2"];
+    E -- D[label="2"];
+    D -- f[label="2"];
+}

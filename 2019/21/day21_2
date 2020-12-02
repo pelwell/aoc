@@ -1,0 +1,307 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+use Time::HiRes qw(usleep);
+
+my $trace = 0;
+
+my @input;
+my @output;
+
+my $answer;
+
+$/ = undef; # slurp
+
+while ($ARGV[0] =~ /^-/)
+{
+	my $arg = shift @ARGV;
+	if ($arg eq '-t')
+	{
+		$trace = 1;
+	}
+	elsif ($arg eq '-i')
+	{
+		push @input, shift @ARGV;
+	}
+}
+
+my $program = <>;
+$program =~ s/\s+//g;
+
+my @program = split(",", $program);
+
+my @progs;
+push @progs, "OR A T";
+push @progs, "AND B T";
+push @progs, "AND C T";
+push @progs, "NOT T J";
+push @progs, "AND D J";
+push @progs, "OR E T";
+push @progs, "AND E T";
+push @progs, "OR H T";
+push @progs, "AND T J";
+push @progs, "RUN";
+
+my $cpu = make_cpu("cpu", \@program, \@input, \&prt_chr);
+
+while (!run_cpu($cpu))
+{
+	my $p = shift @progs;
+	last if (!defined $p);
+	for (my $i = 0; $i < length($p); $i++)
+	{
+		push @input, vec($p, $i, 8);
+	}
+	push @input, 10;
+	print($p, "\n");
+}
+
+printf("\nAnswer: %d\n", $answer);
+
+exit(0);
+
+my $last_nl;
+
+sub prt_chr
+{
+	my ($cpu, $out) = @_;
+	if ($out > 255)
+	{
+		$answer = $out;
+	}
+	else
+	{
+		if ($out == 10)
+		{
+#			printf("\x1b[H") if ($last_nl);
+			$last_nl = 1;
+		}
+		else
+		{
+			$last_nl = 0;
+		}
+		print(chr($out));
+	}
+}
+
+####
+
+sub make_cpu
+{
+	my ($id, $program, $input, $output) = @_;
+	return {
+		'id'=>$id,
+		'mem'=>[@{$program}],
+		'input'=>$input,
+		'output'=>$output,
+		'pc'=>0,
+		'relbase'=>0,
+	};
+}
+
+sub run_cpu
+{
+	my ($cpu) = @_;
+	my $ret = -1;
+	printf("[%s resuming]\n", $cpu->{'id'}) if ($trace);
+
+	while ($ret == -1)
+	{
+		$ret = step_cpu($cpu);
+	}
+
+	printf("[ %s halting ]\n", $cpu->{'id'}) if ($trace);
+
+	return $ret;
+}
+
+sub step_cpu
+{
+	my ($cpu) = @_;
+	my $opc = opcode($cpu);
+	printf("%d: opc %d\n", $cpu->{'pc'}, $opc) if ($trace);
+	if ($opc == 1)
+	{
+		# $1 + $2 -> $3
+		store($cpu, 3, param($cpu, 1) + param($cpu, 2));
+		$cpu->{'pc'} += 4;
+	}
+	elsif ($opc == 2)
+	{
+		# $1 * $2 -> $3
+		store($cpu, 3, param($cpu, 1) * param($cpu, 2));
+		$cpu->{'pc'} += 4;
+	}
+	elsif ($opc == 3)
+	{
+		# input -> $1
+		my $inp = input($cpu);
+		if (!defined $inp)
+		{
+			printf("%s stalling for input\n", $cpu->{'id'}) if ($trace);
+			return 0;
+		}
+
+		store($cpu, 1, $inp);
+		$cpu->{'pc'} += 2;
+	}
+	elsif ($opc == 4)
+	{
+		# $1 -> output
+		output($cpu, param($cpu, 1));
+		$cpu->{'pc'} += 2;
+	}
+	elsif ($opc == 5)
+	{
+		# if $1, pc -> $2
+		if (param($cpu, 1))
+		{
+			$cpu->{'pc'} = param($cpu, 2);
+			print(" jump true -> $cpu->{'pc'}\n") if ($trace);
+		}
+		else
+		{
+			$cpu->{'pc'} += 3;
+		}
+	}
+	elsif ($opc == 6)
+	{
+		# if !$1, pc -> $2
+		if (!param($cpu, 1))
+		{
+			$cpu->{'pc'} = param($cpu, 2);
+			print(" jump false -> $cpu->{'pc'}\n") if ($trace);
+		}
+		else
+		{
+			$cpu->{'pc'} += 3;
+		}
+	}
+	elsif ($opc == 7)
+	{
+		# $3 = $1 < $2
+		store($cpu, 3, (param($cpu, 1) < param($cpu, 2)) ? 1 : 0);
+		$cpu->{'pc'} += 4;
+	}
+	elsif ($opc == 8)
+	{
+		# $3 = $1 == $2
+		store($cpu, 3, (param($cpu, 1) == param($cpu, 2)) ? 1 : 0);
+		$cpu->{'pc'} += 4;
+	}
+	elsif ($opc == 9)
+	{
+		# relbase += $1
+		$cpu->{'relbase'} += param($cpu, 1);
+		$cpu->{'pc'} += 2;
+	}
+	elsif ($opc == 99)
+	{
+		print("Program terminated at $cpu->{'pc'}\n") if ($trace);
+		return 1;
+	}
+	else
+	{
+		print("Invalid opcode $opc at position $cpu->{'pc'}\n");
+		return 1;
+	}
+
+	return -1;
+}
+
+sub opcode
+{
+	my ($cpu) = @_;
+	return $cpu->{'mem'}->[$cpu->{'pc'}] % 100;
+}
+
+sub param_mode
+{
+	my ($cpu, $num) = @_;
+	return ($cpu->{'mem'}->[$cpu->{'pc'}] / (10 ** ($num + 1))) % 10;
+}
+
+sub param
+{
+	my ($cpu, $num) = @_;
+
+	my $param = $cpu->{'mem'}->[$cpu->{'pc'} + $num];
+
+	my $mode = param_mode($cpu, $num);
+	if ($mode == 0)
+	{
+		my $p = $cpu->{'mem'}->[$param];
+		printf(" param %d = [%d] = %d\n", $num, $param, $p) if ($trace);
+		return $p;
+	}
+	elsif ($mode == 2)
+	{
+		my $p = $cpu->{'mem'}->[$cpu->{'relbase'} + $param];
+		printf(" param %d = [%d + %d] = %d\n", $num, $cpu->{'relbase'}, $param, $p) if ($trace);
+		return $p;
+	}
+	printf(" param %d = %d\n", $num, $param) if ($trace);
+	return $param;
+}
+
+sub store
+{
+	my ($cpu, $num, $val) = @_;
+
+	my $mode = param_mode($cpu, $num);
+	my $param = $cpu->{'mem'}->[$cpu->{'pc'} + $num];
+	my $addr;
+	if ($mode == 0)
+	{
+		$addr = $param;
+		printf(" store %d -> [%d]\n", $val, $param) if ($trace);
+	}
+	elsif ($mode == 2)
+	{
+		$addr = $cpu->{'relbase'} + $param;
+		printf(" store %d -> [%d + %d]\n", $val, $cpu->{'relbase'}, $param) if ($trace);
+	}
+	else
+	{
+		die "* Illegal parameter mode at $cpu->{'pc'}\n";
+	}
+
+	$cpu->{'mem'}->[$addr] = $val;
+}
+
+sub input
+{
+	my ($cpu) = @_;
+	my $input = $cpu->{'input'};
+	my $val;
+	if (ref($input) eq 'ARRAY')
+	{
+		$val = shift @$input;
+	}
+	elsif (ref($input) eq 'CODE')
+	{
+		$val = $input->($cpu);
+	}
+
+	if (defined $val)
+	{
+		printf(" [ input %d ]\n", $val) if ($trace);
+	}
+	return $val;
+}
+
+sub output
+{
+	my ($cpu, $val) = @_;
+	my $output = $cpu->{'output'};
+	printf(" [ output %s ]\n", $val) if ($trace);
+	if (ref($output) eq 'ARRAY')
+	{
+		push @$output, $val;
+	}
+	elsif (ref($output) eq 'CODE')
+	{
+		$output->($cpu, $val);
+	}
+}

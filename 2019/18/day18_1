@@ -1,0 +1,394 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+use Time::HiRes qw(usleep);
+
+my $trace = 0;
+use constant INF => 999999;
+
+my @input;
+my @output;
+
+my $sum = 0;
+
+while ($ARGV[0] =~ /^-/)
+{
+	my $arg = shift @ARGV;
+	if ($arg eq '-t')
+	{
+		$trace = 1;
+	}
+	elsif ($arg eq '-i')
+	{
+		push @input, shift @ARGV;
+	}
+}
+
+my @maze;
+my $pos_x = -1;
+my $pos_y = -1;
+
+my $test_path; #= 'guvrbtinmcyafzplkohexsdwqj';
+
+while (my $line = <>)
+{
+	chomp($line);
+	if ($line =~ /@/g)
+	{
+		$pos_x = pos($line) - 1;
+		$pos_y = @maze;
+	}
+	push @maze, $line;
+}
+
+my @dirs = ([0, -1], [1, 0], [0, 1], [-1, 0]);
+my $height = @maze;
+my $width = length($maze[0]);
+my %best_steps;
+
+simplify_maze(\@maze);
+#draw_maze(\@maze);
+
+my ($nodes, $features) = build_graph(\@maze, $pos_x, $pos_y);
+my $num_keys;
+foreach my $key (keys(%$features))
+{
+	if ($key =~ /^[a-z]$/)
+	{
+		$num_keys++;
+	}
+}
+
+# draw_graph($nodes);
+if (0 && $test_path)
+{
+	draw_maze(\@maze);
+	my $steps = count_steps(\@maze, $features, $test_path);
+	print("Steps: ", $steps, "\n");
+	exit(0);
+}
+
+my $distances = calc_graph($nodes, $features);
+
+my ($steps, $seq, $sub_steps) = solve_graph($distances, '@', '@', $num_keys);
+
+printf("Minimum steps: $steps ($seq - %s)\n", join(' ', @$sub_steps));
+
+exit(0);
+
+# Return a hash from pairs of keys to [ distance, doorstring ]
+# The route taken is unimportant at that point.
+
+sub calc_graph
+{
+	my ($nodes, $features) = @_;
+	my $pairs = {};
+	my @next;
+
+	while (my ($k,$v) = each %$features)
+	{
+		next if ($k !~ /^[a-z1-4@]$/);
+		my $spt = spt($v);
+		while (my ($k2, $v2) = each %$spt)
+		{
+			next if ($k eq $k2);
+			my $twin = $pairs->{$k2};
+			$twin = $twin->{$k} if ($twin);
+			if ($twin && (($v2->[0] != $twin->[0]) || (stringsort($v2->[1]) ne stringsort($twin->[1]))))
+			{
+				$DB::single = 1;
+				die "* Ooops!\n";
+			}
+		}
+		$pairs->{$k} = $spt;
+	}
+
+	return $pairs;
+}
+
+sub spt
+{
+	my ($start) = @_;
+	my @next;
+	my %found;
+
+	$found{$start->[0]} = [ 0, '' ];
+	push @next, [ $start, 0, '' ];
+
+	while (@next)
+	{
+		my $nx = shift @next;
+		my $base_dist = $nx->[1];
+		foreach my $n (@{$nx->[0]->[3]})
+		{
+			my $id = $n->[0]->[0];
+			my $doors = $nx->[2];
+			$doors .= $id if ($id =~ /^[A-Z]$/);
+			my $f = $found{$id};
+			my ($prev_dist) = defined($f) ? @$f : (INF);
+			my $dist = $base_dist + $n->[1];
+			if ($dist < $prev_dist)
+			{
+				push @next, [ $n->[0], $dist, $doors ];
+				$found{$id} = [ $dist, $doors ];
+			}
+		}
+
+		@next = sort { $a->[1] <=> $b->[1] } (@next);
+	}
+
+	my $ret = {};
+
+	while (my ($k,$v) = each %found)
+	{
+		$ret->{$k} = $v if ($k =~ /^[a-z1-4@]$/);
+	}
+
+	return $ret;
+}
+
+sub simplify_maze
+{
+	my ($maze) = @_;
+
+	my $changed = 1;
+	while ($changed)
+	{
+		$changed = 0;
+		for (my $y = 1; $y < ($height - 1); $y++)
+		{
+			for (my $x = 1; $x < ($height - 1); $x++)
+			{
+				if (substr($maze->[$y], $x, 1) eq '.')
+				{
+					my $walls = (substr($maze->[$y - 1], $x, 1) eq '#') +
+						    (substr($maze->[$y + 1], $x, 1) eq '#') +
+						    (substr($maze->[$y], $x - 1, 1) eq '#') +
+						    (substr($maze->[$y], $x + 1, 1) eq '#');
+					if ($walls >= 3)
+					{
+						substr($maze->[$y], $x, 1, '#');
+						$changed = 1;
+					}
+				}
+				    
+			}
+		}
+	}
+}
+
+sub draw_maze
+{
+	my ($maze) = @_;
+
+	foreach my $row (@$maze)
+	{
+		print($row, "\n");
+	}
+}
+
+sub solve_graph
+{
+	# Path is a sorted string of keys
+	my ($distances, $start, $path, $keys_left) = @_;
+
+	if (!$keys_left)
+	{
+		printf("solve_graph(%s)\n", $path);
+		return (0, '', []);
+	}
+	my @reachable = reachable_keys($distances, $start, $path);
+
+	my $min_steps = INF;
+	my $min_seq;
+	my $min_sub_steps;
+
+	foreach my $found (@reachable)
+	{
+		my ($node, $steps) = @$found;
+		my $try_path = $path.$node;
+		my ($rem_steps, $seq, $sub_steps);
+		my $cached = $best_steps{$try_path};
+		if ($cached)
+		{
+			($rem_steps, $seq, $sub_steps) = @$cached;
+		}
+		else
+		{
+			my $new_path = join('', sort(split('', $try_path)));
+			($rem_steps, $seq, $sub_steps) = solve_graph($distances, $node, $new_path, $keys_left - 1);
+			$sub_steps = [ $steps, @$sub_steps ];
+			$best_steps{$try_path} = [ $rem_steps, $seq, $sub_steps ];
+		}
+		$steps += $rem_steps;
+		if ($steps < $min_steps)
+		{
+			$min_steps = $steps;
+			$min_seq = $node.$seq;
+			$min_sub_steps = $sub_steps;
+		}
+	}
+
+	return ($min_steps, $min_seq, $min_sub_steps);
+}
+
+sub reachable_keys
+{
+	my ($distances, $start, $path) = @_;
+
+	my @reachable;
+
+	KEY: while (my ($to, $v) = each(%{$distances->{$start}}))
+	{
+		next if (index($path, $to) >= 0);
+
+		foreach my $key (split('', "\L$v->[1]"))
+		{
+			next KEY if (index($path, $key) < 0);
+		}
+
+		push @reachable, [ $to, $v->[0] ];
+	}
+	return @reachable;
+}
+
+# node = [ tile, x, y, [ link, link, ... ] ]
+# link = [ steps, node ]
+
+# Locked doors place a partial order on the keys
+
+# Data structures:
+# * Node:
+#   + tile (key, door, start, nothing)
+#   + edges (set of edges)
+# * Frontier:
+#   + tile
+#   + (x,y) position
+#   + ancestor
+#   + distance from ancestor
+# * Edge:
+#   + node pointer
+#   * distance
+#
+# Working state:
+# * A set of nodes, with the 
+# * A set of frontier nodes
+
+# Algorithm:
+# * Create $start_node
+# * add_neighbors($start_node)
+#   Create frontier nodes for unvisited neighbouring squares
+# * while (@frontier)
+#     my $front = shift @frontier
+#     my $tile = set_pos($front->{'pos'}, '#');
+#     my @neighbours = get_neighbours
+#     if ($tile ne '.')
+#     {
+#       # Make it a node because there is something of interest
+#       ...
+#       push @frontier, @neighbours
+#     }
+#     else
+#     {
+#       if (@neighbours == 1)
+#       {
+#         $front->distance++;
+#         push @frontier, $front;
+#       }
+#     
+
+sub build_graph
+{
+	my ($maze, $startx, $starty) = @_;
+	my @m = @$maze;
+	my $features = {};
+	my $nodes = [];
+	my @heads = ( ['@', $startx, $starty, undef, 0] );
+	my $count = 0;
+	printf("build_graph:\n");
+
+	while (@heads)
+	{
+		my @next;
+		foreach my $h (@heads)
+		{
+			my @neighbours = get_neighbours(\@m, $h);
+			my $tile = $h->[0];
+			if (($tile ne '.') || (@neighbours > 1))
+			{
+				# Make it a node
+				my $ancestor = $h->[3];
+				my $label = $tile;
+				if ($tile eq '.')
+				{
+					$count++;
+					$label = "_".$count;
+				}
+				my $node = $features->{$tile};
+				$node = [ $label, $h->[1], $h->[2], [ ] ] if (!$node);
+				$features->{$tile} = $node if ($tile ne '.');
+				if ($ancestor)
+				{
+					push @{$node->[3]}, [ $ancestor, $h->[4] ];
+					push @{$ancestor->[3]}, [ $node, $h->[4] ];
+				}
+				push @$nodes, $node;
+				foreach my $n (@neighbours)
+				{
+					$n->[3] = $node;
+					$n->[4] = 1;
+				}
+			}
+			push @next, @neighbours;
+		}
+		@heads = @next;
+	}
+
+	return ($nodes, $features);
+}
+
+# Return heads for all non-visited, non-wall neighbours
+sub get_neighbours
+{
+	my ($m, $pos) = @_;
+	my @neighbs;
+
+	substr($m->[$pos->[2]], $pos->[1], 1, '=');
+	foreach my $d (@dirs)
+	{
+		my ($tx, $ty) = ($pos->[1] + $d->[0], $pos->[2] + $d->[1]);
+		my $tile = substr($m->[$ty], $tx, 1);
+		if ($tile ne '#' && $tile ne '=')
+		{
+#			substr($m->[$ty], $tx, 1, '=');
+			push @neighbs, [ $tile, $tx, $ty, $pos->[3], $pos->[4] + 1 ];
+		}
+	}
+
+	return @neighbs;
+}
+
+sub draw_graph
+{
+	my ($graph) = @_;
+
+	my %drawn;
+	print("graph {\n");
+	foreach my $node (@$graph)
+	{
+		foreach my $edge (@{$node->[3]})
+		{
+			next if ($drawn{$node->[0].",".$edge->[0]->[0]});
+			printf("    %s -- %s[label=\"%d\"];\n", $node->[0], $edge->[0]->[0], $edge->[1]);
+			$drawn{$edge->[0]->[0].",".$node->[0]} = 1;
+		}
+	}
+	print("}\n");
+}
+
+sub stringsort
+{
+	my ($str) = @_;
+	return join('', sort(split(//, $str)));
+}

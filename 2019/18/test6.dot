@@ -1,0 +1,14 @@
+graph {
+    start -- _1[label="1"];
+    start -- _2[label="1"];
+    start -- _3[label="1"];
+    start -- _4[label="1"];
+    _1 -- b[label="2"];
+    _1 -- a[label="2"];
+    _2 -- b[label="2"];
+    _2 -- d[label="2"];
+    _3 -- d[label="2"];
+    _3 -- c[label="2"];
+    _4 -- a[label="2"];
+    _4 -- c[label="2"];
+}

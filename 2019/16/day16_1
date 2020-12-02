@@ -1,0 +1,46 @@
+#!/usr/bin/perl
+
+use strict;
+use integer;
+
+my $input = <>;
+chomp($input);
+
+my @input = split(//, $input);
+my @output = ();
+
+$input = \@input;
+my $output = \@output;
+
+my $i = 1;
+while (1)
+{
+	fft($input, $output);
+	last if ($i == 100);
+	my $t = $input;
+	$input = $output;
+	$output = $t;
+	$i++;
+}
+
+my $answer = join('', @{$output}[0..7]);
+
+printf("Answer: %s\n", $answer);
+
+exit(0);
+
+sub fft
+{
+	my ($input, $output) = @_;
+	my @conv = (0, 1, 0, -1);
+	for (my $i = 1; $i < @$input; $i++)
+	{
+		my $sum = 0;
+		for (my $j = 0; $j < @$input; $j++)
+		{
+			my $mult = $conv[(($j + 1)/($i+1)) & 3];
+			$sum += $input->[$j] * $mult;
+		}
+		$output->[$i] = substr($sum, -1, 1);
+	}
+}
