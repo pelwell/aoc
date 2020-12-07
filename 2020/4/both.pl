@@ -39,13 +39,14 @@ while (1)
 		$present2 = 0;
 		last if (!$line);
 	}
-	while ($line =~ /\b([a-z]{3}):([^ ]+)/g)
+	while ($line =~ /\b([a-z]{3}):([^ \r\n\t]+)/g)
 	{
-		my $res = $fields{$1};
+		my ($fld, $val) = ($1, $2);
+		my $res = $fields{$fld};
 		if ($res)
 		{
 			$present1 |= $res->[0];
-			$present2 |= $res->[0] if ($res->[1]($2));
+			$present2 |= $res->[0] if ($res->[1]($val));
 		}
 	}
 }
