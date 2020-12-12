@@ -49,25 +49,3 @@ $hist[3]++;
 
 printf("Part 1 answer: %d\n", $hist[1]*$hist[3]);
 printf("Part 2 answer: %d\n", $count);
-
-sub find_pair_with_sum
-{
-	my ($sum, @arr) = @_;
-	@arr = sort { $a <=> $b } @arr;
-	my $i = 0;
-	my $j = @arr - 1;
-	while ($i < $j)
-	{
-		my $pairsum = $arr[$i] + $arr[$j];
-		return 1 if ($pairsum == $sum);
-		if ($pairsum > $sum)
-		{
-			$j--;
-		}
-		else
-		{
-			$i++;
-		}
-	}
-	return 0;
-}
