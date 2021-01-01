@@ -40,7 +40,6 @@ my $sum = $list[0] + $list[1];
 
 while ($i < (@list - 1))
 {
-	print("$i..$j = $sum\n");
 	if ($sum == $answer1)
 	{
 		my @sublist = sort { $a <=> $b } @list[$i..$j];
