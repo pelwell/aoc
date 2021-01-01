@@ -20,7 +20,6 @@ while (1)
 	$linenum++;
 	last if (!$line);
 	$line =~ s/(?: bags?| contain| no other bags|[\.,\n])//g;
-	print("'$line'\n");
 	my @toks = split(" ", $line);
 	my $src = $toks[0]." ".$toks[1];
 	my $node = $contains{$src} ||= [];
@@ -68,19 +67,3 @@ while (@frontier)
 }
 
 printf("Part 2 answer: %d\n", $count2);
-
-sub count_bits
-{
-	my ($num) = @_;
-	my $count = 0;
-
-	for (my $i = 1; $num; $i <<= 1)
-	{
-		if ($num & $i)
-		{
-			$num &= ~$i;
-			$count++;
-		}
-	}
-	return $count;
-}
