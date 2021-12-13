@@ -3,9 +3,6 @@
 import string
 import sys
 
-def findcount(s, m):
-	return sum(1 if i == m else 0 for i in s)
-
 infile = 'input.txt'
 if (len(sys.argv) > 1):
 	infile = sys.argv[1]

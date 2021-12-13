@@ -70,7 +70,6 @@ print("Part 1 answer: %d" % (flashes))
 
 for i in range(101,100000):
 	flashes = run_step(map)
-	show_map(map)
 	if flashes == width*height:
 		break
 
